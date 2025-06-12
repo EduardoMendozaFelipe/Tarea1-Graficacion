@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuadrados: 50 cuadrados uno dentro del otro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .contenedor {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 95vw;
+            max-width: 95vw;
+            height: 95vh;
+            max-height: 95vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-weight: 300;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            flex-shrink: 0;
+        }
+
+        .envoltorio-canvas {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1;
+            margin: 20px 0;
+        }
+
+        canvas {
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            background: #fefefe;
+            transition: transform 0.3s ease;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+        }
+
+        canvas:hover {
+            transform: scale(1.02);
+        }
+
+        .controles {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: clamp(8px, 2vw, 12px) clamp(20px, 4vw, 30px);
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: clamp(12px, 2vw, 14px);
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        button:hover:before {
+            left: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .informacion {
+            color: #7f8c8d;
+            font-size: clamp(12px, 2vw, 14px);
+            font-style: italic;
+            opacity: 0.8;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            .contenedor {
+                padding: 20px;
+                border-radius: 15px;
+            }
+            
+            .controles {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            button {
+                width: 80%;
+                max-width: 200px;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .contenedor {
+                padding: 15px;
+            }
+            
+            h1 {
+                margin-bottom: 10px;
+            }
+            
+            .envoltorio-canvas {
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="contenedor">
+        <h1>Cuadrados Concentricos</h1>
+        <div class="envoltorio-canvas">
+            <canvas id="lienzo" width="600" height="400"></canvas>
+        </div>
+        <div class="controles">
+            <button onclick="redibujar()">Redibujar</button>
+            <button onclick="limpiarLienzo()">Limpiar</button>
+        </div>
+        <div class="informacion">
+            Hecho por Mendoza Felipe Eduardo
+        </div>
+    </div>
+
+    <script>
+        class DibujadorCuadrados {
+            constructor(idLienzo) {
+                this.lienzo = document.getElementById(idLienzo);
+                this.contexto = this.lienzo.getContext('2d');
+                this.ajustarTamano();
+                this.iniciarGraficos();
+            }
+
+            ajustarTamano() {
+                const contenedor = this.lienzo.parentElement;
+                const rect = contenedor.getBoundingClientRect();
+                
+                const anchoDisponible = rect.width - 40;
+                const altoDisponible = rect.height - 40;
+                
+                const tamano = Math.min(anchoDisponible, altoDisponible, 800);
+                
+                this.lienzo.width = tamano;
+                this.lienzo.height = tamano;
+                this.lienzo.style.width = tamano + 'px';
+                this.lienzo.style.height = tamano + 'px';
+            }
+
+            iniciarGraficos() {
+                this.maxX = this.lienzo.width - 1;
+                this.maxY = this.lienzo.height - 1;
+                this.minMaxXY = Math.min(this.maxX, this.maxY);
+                this.centroX = this.maxX / 2;
+                this.centroY = this.maxY / 2;
+            }
+
+            coordenadaX(x) {
+                return Math.round(x);
+            }
+
+            coordenadaY(y) {
+                return this.maxY - Math.round(y);
+            }
+
+            puntoX(x) {
+                return x;
+            }
+
+            puntoY(y) {
+                return this.maxY - y;
+            }
+
+            dibujarCuadrados() {
+                this.contexto.clearRect(0, 0, this.lienzo.width, this.lienzo.height);
+                this.contexto.strokeStyle = '#2c3e50';
+                this.contexto.lineWidth = Math.max(1, this.lienzo.width / 400);
+
+                const lado = 0.95 * this.minMaxXY;
+                const mitadLado = 0.5 * lado;
+
+                let xA = this.centroX - mitadLado;
+                let yA = this.centroY - mitadLado;
+                let xB = this.centroX + mitadLado;
+                let yB = this.centroY - mitadLado;
+                let xC = this.centroX + mitadLado;
+                let yC = this.centroY + mitadLado;
+                let xD = this.centroX - mitadLado;
+                let yD = this.centroY + mitadLado;
+
+                const factor = 0.05;
+                const proporcion = 1 - factor;
+
+                for (let i = 0; i < 50; i++) {
+                    this.contexto.beginPath();
+                    this.contexto.moveTo(this.coordenadaX(xA), this.coordenadaY(yA));
+                    this.contexto.lineTo(this.coordenadaX(xB), this.coordenadaY(yB));
+                    this.contexto.lineTo(this.coordenadaX(xC), this.coordenadaY(yC));
+                    this.contexto.lineTo(this.coordenadaX(xD), this.coordenadaY(yD));
+                    this.contexto.closePath();
+                    this.contexto.stroke();
+
+                    const xA1 = proporcion * xA + factor * xB;
+                    const yA1 = proporcion * yA + factor * yB;
+                    const xB1 = proporcion * xB + factor * xC;
+                    const yB1 = proporcion * yB + factor * yC;
+                    const xC1 = proporcion * xC + factor * xD;
+                    const yC1 = proporcion * yC + factor * yD;
+                    const xD1 = proporcion * xD + factor * xA;
+                    const yD1 = proporcion * yD + factor * yA;
+
+                    xA = xA1; xB = xB1; xC = xC1; xD = xD1;
+                    yA = yA1; yB = yB1; yC = yC1; yD = yD1;
+                }
+            }
+
+            redimensionar() {
+                this.ajustarTamano();
+                this.iniciarGraficos();
+                this.dibujarCuadrados();
+            }
+
+            limpiar() {
+                this.contexto.clearRect(0, 0, this.lienzo.width, this.lienzo.height);
+            }
+        }
+
+        let dibujador;
+
+        window.addEventListener('load', () => {
+            dibujador = new DibujadorCuadrados('lienzo');
+            dibujador.dibujarCuadrados();
+        });
+
+        function redibujar() {
+            dibujador.dibujarCuadrados();
+        }
+
+        function limpiarLienzo() {
+            dibujador.limpiar();
+        }
+
+        window.addEventListener('resize', () => {
+            if (dibujador) {
+                setTimeout(() => {
+                    dibujador.redimensionar();
+                }, 100);
+            }
+        });
+
+        window.addEventListener('orientationchange', () => {
+            if (dibujador) {
+                setTimeout(() => {
+                    dibujador.redimensionar();
+                }, 300);
+            }
+        });
+    </script>
+</body>
+</html>
